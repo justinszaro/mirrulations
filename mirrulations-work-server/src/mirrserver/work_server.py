@@ -123,7 +123,7 @@ def decrement_count(workserver, job_type):
 def get_job(workserver):
     # pylint: disable=R0914
     """
-    Takes client's put endpoints validates wheter or not its a usable job
+    Takes client's put endpoints validates whether or not its a usable job
     if so it returns the job with the job ID, URL job_type and
     regulations id and agency so the job can be linked to related data
     in the databases
@@ -165,7 +165,7 @@ def get_job(workserver):
 
 def check_results(workserver, data, client_id):
     """
-    checks that a result has a vaid directory structure in the results key.
+    checks that a result has a valid directory structure in the results key.
     Used for comments, documents, and dockets jobs
     so they know where to be saved to disk.
 
@@ -294,7 +294,7 @@ def put_attachment_results(workserver, data):
 def get_client_id(workserver):
     """
     called when a client is started and needs a client id.
-    Incremenets the total number of clients and gives
+    Increments the total number of clients and gives
     the number to the client.
 
 
@@ -399,7 +399,7 @@ def create_server(database):
         except (InvalidResultsException, InvalidClientIDException,
                 MissingClientIDException) as invalid_result:
             return jsonify(invalid_result.message), invalid_result.status_code
-        # Added ternary instead of if/else to apease pylint too many statements
+        # Added ternary instead of if/else to appease pylint too many statements
         success, *values = put_attachment_results(workserver, data) if \
             data.get('job_type') == 'attachments' else \
             put_results(workserver, data)
