@@ -1,55 +1,74 @@
 import re
 
 class PathGenerator:
+    '''
+    Gets a value from traversing a series of nested keys in a JSON object.
+    default_value is the value that should be returned if any of the nested
+    keys are missing from the JSON.
+    '''
+    def _get_nested_keys_in_json(self, json_data, nested_keys, default_value):
+        json_subset = json_data
+
+        for key in nested_keys:
+            if key not in json_subset:
+                return default_value
+            else:
+                json_subset = json_subset[key]
+
+        return json_subset
 
     '''
     Returns the agency, docket id, and item id from a loaded json object.
     '''
-    def get_attributes(self, json_data, is_docket=False):
-        try: 
-            item_id, agencyId = json_data["data"]["id"], json_data["data"]["attributes"]["agencyId"]
-            if is_docket:
-                docket_id = item_id
-            else:
-                docket_id = json_data['data']['attributes']['docketId']
-        except KeyError:
-            # if a key cannot be found
-            print("Could not find necessary keys in json")
-            docket_id = None
-            raise KeyError
-        return agencyId, docket_id, item_id
+    def _get_attributes(self, json_data, is_docket_json=False):
+        item_id = self._get_nested_keys_in_json(
+            json_data, ['data', 'id'], None)
+        agency_id = self._get_nested_keys_in_json(
+            json_data, ['data', 'attributes', 'agencyId'], None)
+
+        if is_docket_json:
+            docket_id = item_id
+            item_id = None
+        else:
+            docket_id = self._get_nested_keys_in_json(
+                json_data, ['data', 'attributes', 'docketId'], None)
+
+            if docket_id is None:
+                docket_id = parse_docket_id(item_id)
+                print(f'{item_id} was parsed to get docket id: {docket_id}.')
+
+        # convert None value to respective folder names
+        if not is_docket_json and item_id is None:
+            item_id = 'unknown'
+        if docket_id is None:
+            docket_id = 'unknown'
+        if agency_id is None:
+            agency_id = 'unknown'
+
+        return agency_id, docket_id, item_id
+
+
+    def parse_docket_id(self, item_id):
+        segments = item_id.split('-') # list of segments separated by '-'
+        segments_excluding_end = segments[:-1] # drops the last segment
+        return '-'.join(segments_excluding_end)
 
 
     def get_docket_json_path(self, json): 
-        agencyId, docket_id, item_id = self.get_attributes(json, True)
-        return f'data/{agencyId}/{item_id}/text-{item_id}/docket/{item_id}.json'
+        agencyId, docket_id, _ = self._get_attributes(json, is_docket_json=True)
+
+        return f'data/{agencyId}/{docket_id}/text-{docket_id}/docket/{docket_id}.json'
 
     
     def get_document_json_path(self, json):
+        agencyId, docket_id, item_id = self._get_attributes(json)
 
-        agencyId, docket_id, item_id = self.get_attributes(json)
-        if docket_id is not None:
-            return f'data/{agencyId}/{docket_id}/text-{docket_id}/documents/{item_id}.json'
-        
-        else: 
-            # Case where we do not have a docketId so we must parse the item_id
-            print(f"Document json did not have a DocketId, parsing id: {item_id}")
-            split_id = item_id.split('-') # list of id_segments
-            docket_id = '-'.join(split_id[:-1])
-            return f'data/{agencyId}/{docket_id}/text-{docket_id}/documents/{item_id}.json'
+        return f'data/{agencyId}/{docket_id}/text-{docket_id}/documents/{item_id}.json'
 
     def get_comment_json_path(self, json):
+        agencyId, docket_id, item_id = self._get_attributes(json)
 
-        agencyId, docket_id, item_id = self.get_attributes(json)
-        if docket_id is not None:
-            return f'data/{agencyId}/{docket_id}/text-{docket_id}/comments/{item_id}.json'
-        
-        else: 
-            # Case where we do not have a docketId so we must parse the item_id
-            print(f"Comment json did not have a DocketId, parsing id: {item_id}")
-            split_id = item_id.split('-') # list of id_segments
-            docket_id = '-'.join(split_id[:-1])
-            return f'data/{agencyId}/{docket_id}/text-{docket_id}/comments/{item_id}.json'
+        return f'data/{agencyId}/{docket_id}/text-{docket_id}/comments/{item_id}.json'
 
 
     # def get_comment_extracted_text_path(self, json_data, file_name, extraction_method):
